@@ -2,6 +2,7 @@
 
     python -m bot.run --adapter PATH --package PATH [--mode sprint|versus]
                       [--games N] [--seed S] [--pps P] [--max-pieces N]
+                      [--remote 'ssh HOST']
 
 Sprint: one bot clears 40 lines. Versus: two bots play each other, taking
 turns in lock order at the same speed. Each game prints one summary line;
@@ -20,7 +21,7 @@ os.environ.setdefault('PYGAME_HIDE_SUPPORT_PROMPT', '1')
 
 from game import Game, MovementHandler, SharedQueue  # noqa: E402
 
-from .adapter import Adapter  # noqa: E402
+from .adapter import Adapter, adapter_command  # noqa: E402
 from .inputs import DISCARD, play_move  # noqa: E402
 from .position import FPS, position  # noqa: E402
 
@@ -104,10 +105,12 @@ def main(argv=None):
     parser.add_argument('--seed', type=int, default=0)
     parser.add_argument('--pps', type=float, default=2.5)
     parser.add_argument('--max-pieces', type=int, default=400)
+    parser.add_argument('--remote', default=os.environ.get('FUSION_REMOTE'),
+                        help="run the adapter over this ssh command, e.g. 'ssh pc'; --adapter and --package are its paths")
     parser.add_argument('--adapter-arg', action='append', default=[],
                         help='extra adapter argument (repeatable), e.g. --adapter-arg=--parallel --adapter-arg=off')
     args = parser.parse_args(argv)
-    command = [args.adapter, '--package', args.package, '--pps', str(args.pps)] + args.adapter_arg
+    command = adapter_command(args.adapter, args.package, args.pps, args.adapter_arg, args.remote)
     adapters = [Adapter(command) for _ in range(2 if args.mode == 'versus' else 1)]
     results = sys.stdout
     try:

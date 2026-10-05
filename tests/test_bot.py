@@ -199,6 +199,21 @@ def test_importing_the_runner_prints_nothing():
     assert out == ''
 
 
+def test_local_adapter_command():
+    from bot.adapter import adapter_command
+    assert adapter_command('/bin/a', '/p.json', 2.5, ['--das']) == \
+        ['/bin/a', '--package', '/p.json', '--pps', '2.5', '--das']
+
+
+def test_remote_adapter_command_quotes_for_the_remote_shell():
+    from bot.adapter import adapter_command
+    win = adapter_command(r"C:\Users\o'k\a.exe", r'C:\p dir\x.json', 2.5, remote='ssh -p 22 pc')
+    assert win == ['ssh', '-p', '22', 'pc',
+                   r"& 'C:\Users\o''k\a.exe' '--package' 'C:\p dir\x.json' '--pps' '2.5'"]
+    unix = adapter_command('/opt/a b/adapter', '/p.json', 3, remote='ssh box')
+    assert unix == ['ssh', 'box', "'/opt/a b/adapter' --package /p.json --pps 3"]
+
+
 def test_new_games_start_without_the_countdown():
     p1, p2 = new_game('versus')
     assert p1.opponent is p2 and p2.opponent is p1

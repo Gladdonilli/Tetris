@@ -10,6 +10,8 @@ parser.add_argument('--p1', choices=('human', 'bot'), default='human')
 parser.add_argument('--p2', choices=('human', 'bot'), default='human')
 parser.add_argument('--adapter', default=os.environ.get('FUSION_ADAPTER'), help='league_adapter binary')
 parser.add_argument('--package', default=os.environ.get('FUSION_PACKAGE'), help='bot package JSON')
+parser.add_argument('--remote', default=os.environ.get('FUSION_REMOTE'),
+                    help="run the adapter over this ssh command, e.g. 'ssh pc'; --adapter and --package are its paths")
 parser.add_argument('--pps', type=float, default=2.5, help="the bot's pieces per second")
 args = parser.parse_args()
 kinds = [args.p1] if args.mode == 'sprint' else [args.p1, args.p2]
@@ -37,9 +39,9 @@ input_handlers = [MovementHandler() for _ in games]
 
 seats = [None for _ in games]
 if 'bot' in kinds:
-    from bot.adapter import Adapter
+    from bot.adapter import Adapter, adapter_command
     from bot.seat import BotSeat
-    command = [args.adapter, '--package', args.package, '--pps', str(args.pps)]
+    command = adapter_command(args.adapter, args.package, args.pps, remote=args.remote)
     for i, kind in enumerate(kinds):
         if kind == 'bot':
             seats[i] = BotSeat(games[i], Adapter(command), args.pps, pygame.time.get_ticks)

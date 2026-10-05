@@ -20,6 +20,16 @@ python main.py --mode sprint --p1 bot --adapter PATH --package PATH
 `--pps` sets the bot's speed (default 2.5 pieces a second). A bot player
 ignores the keyboard except `R`, which restarts the round as usual.
 
+The bot can think on another machine while the game runs here: `--remote`
+(or `FUSION_REMOTE`) is an ssh command, and `--adapter` and `--package` are
+paths on that machine. A Windows machine needs PowerShell as its OpenSSH
+default shell.
+
+```sh
+python main.py --mode versus --p2 bot --remote 'ssh pc' \
+  --adapter 'C:\fusion\league_adapter.exe' --package 'C:\fusion\league-best.json'
+```
+
 Without a window, as fast as the bot answers (one JSON line per game):
 
 ```sh

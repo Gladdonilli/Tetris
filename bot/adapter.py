@@ -4,11 +4,31 @@ diagnostics go to stderr, which this process shares.
 """
 
 import json
+import re
+import shlex
 import subprocess
 
 
 class AdapterError(RuntimeError):
     pass
+
+
+def adapter_command(adapter, package, pps, extra=(), remote=None):
+    """The command that starts the adapter.
+
+    With `remote` (an ssh command such as 'ssh pc') the adapter runs on that
+    machine and `adapter` and `package` are its paths. A Windows path (drive
+    letter or .exe) is quoted for PowerShell, which must be the machine's
+    OpenSSH default shell; any other path for a POSIX shell.
+    """
+    args = [adapter, '--package', package, '--pps', str(pps), *extra]
+    if not remote:
+        return args
+    if re.match(r'^[A-Za-z]:[\\/]', adapter) or adapter.lower().endswith('.exe'):
+        line = '& ' + ' '.join("'" + a.replace("'", "''") + "'" for a in args)
+    else:
+        line = ' '.join(shlex.quote(a) for a in args)
+    return shlex.split(remote) + [line]
 
 
 class Adapter:

@@ -219,7 +219,7 @@ class Game:
 
     def handle_garbage(self):
         attack = self.last_attack
-        while attack > 0 and self.player > 1:
+        while attack > 0 and self.opponent:
             if self.garbage:
                 if attack > self.garbage[0]:
                     attack -= self.garbage.pop(0)

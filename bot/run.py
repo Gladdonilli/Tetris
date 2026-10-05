@@ -10,14 +10,19 @@ time is the bot's game time at `--pps`, not the time the run took.
 
 import argparse
 import json
+import os
 import random
 import sys
+from contextlib import redirect_stdout
 
-from game import Game, MovementHandler, SharedQueue
+# pygame prints a banner on import unless this is set first.
+os.environ.setdefault('PYGAME_HIDE_SUPPORT_PROMPT', '1')
 
-from .adapter import Adapter
-from .inputs import play_move
-from .position import FPS, position
+from game import Game, MovementHandler, SharedQueue  # noqa: E402
+
+from .adapter import Adapter  # noqa: E402
+from .inputs import DISCARD, play_move  # noqa: E402
+from .position import FPS, position  # noqa: E402
 
 WINDOW_W, WINDOW_H = 1366, 768
 
@@ -104,14 +109,18 @@ def main(argv=None):
     args = parser.parse_args(argv)
     command = [args.adapter, '--package', args.package, '--pps', str(args.pps)] + args.adapter_arg
     adapters = [Adapter(command) for _ in range(2 if args.mode == 'versus' else 1)]
+    results = sys.stdout
     try:
         for game_index in range(args.games):
             random.seed(args.seed + game_index)
-            if args.mode == 'sprint':
-                result = sprint(adapters[0], args.pps, args.max_pieces)
-            else:
-                result = versus(adapters, args.pps, args.max_pieces)
-            print(json.dumps({'game': game_index, 'seed': args.seed + game_index, **result}), flush=True)
+            # The game's own debugging prints would mix into the result lines.
+            with redirect_stdout(DISCARD):
+                if args.mode == 'sprint':
+                    result = sprint(adapters[0], args.pps, args.max_pieces)
+                else:
+                    result = versus(adapters, args.pps, args.max_pieces)
+            print(json.dumps({'game': game_index, 'seed': args.seed + game_index, **result}),
+                  file=results, flush=True)
     finally:
         for adapter in adapters:
             adapter.close()

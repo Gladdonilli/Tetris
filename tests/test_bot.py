@@ -1,6 +1,7 @@
 import json
 import os
 import random
+import subprocess
 import sys
 from pathlib import Path
 from typing import Dict, List, Optional
@@ -158,6 +159,14 @@ def test_finds_a_spin_path_and_the_game_scores_it():
     assert inputs.spin_kind(game.spin_type) == 2
 
 
+def test_the_search_prints_nothing(capsys):
+    matrix = tsd_board()
+    game = game_with(matrix, 't')
+    target = frozenset({(4, 3), (4, 2), (5, 2), (4, 1)})
+    inputs.find_inputs(matrix, 't', inputs.start_state(game), target, 2)
+    assert capsys.readouterr().out == ''
+
+
 def test_play_move_holds_then_places():
     game = game_with(empty(), 't', hold='i')
     move = {'data': {'hold': True, 'cells': [[0, 0], [1, 0], [2, 0], [3, 0]], 'spin': 0}}
@@ -183,6 +192,13 @@ def test_position_is_bottom_up_with_triangle_counters():
     assert side['incoming'] == [{'frame': 120 - position.READY_FRAMES, 'amount': 3}]
 
 
+def test_importing_the_runner_prints_nothing():
+    # A fresh interpreter, so pygame's import banner would show.
+    out = subprocess.run([sys.executable, '-c', 'import bot.run'], cwd=ROOT,
+                         capture_output=True, text=True, check=True).stdout
+    assert out == ''
+
+
 def test_new_games_start_without_the_countdown():
     p1, p2 = new_game('versus')
     assert p1.opponent is p2 and p2.opponent is p1
@@ -194,21 +210,20 @@ PACKAGE = os.environ.get('FUSION_PACKAGE')
 
 
 @pytest.mark.skipif(not (ADAPTER and PACKAGE), reason='set FUSION_ADAPTER and FUSION_PACKAGE')
-def test_bot_plays_sprint_pieces_where_it_chose(tmp_path):
-    from bot.run import sprint
-    from bot.adapter import Adapter
+def test_bot_plays_sprint_pieces_where_it_chose(tmp_path, capsys):
+    from bot.run import main
 
     # A narrow search keeps the test quick; the placements are still the bot's.
     package = json.loads(Path(PACKAGE).read_text())
     package['width'] = 32
     narrow = tmp_path / 'narrow.json'
     narrow.write_text(json.dumps(package))
-    random.seed(1)
-    adapter = Adapter([ADAPTER, '--package', str(narrow), '--parallel', 'off'])
-    try:
-        result = sprint(adapter, 2.5, 60)
-    finally:
-        adapter.close()
+    assert main(['--adapter', ADAPTER, '--package', str(narrow), '--seed', '1',
+                 '--max-pieces', '60', '--adapter-arg=--parallel', '--adapter-arg=off']) == 0
+    lines = capsys.readouterr().out.splitlines()
+    # Only result lines reach stdout, whatever the game prints.
+    assert len(lines) == 1
+    result = json.loads(lines[0])
     assert result['pieces'] == 60 and result['lines'] > 0
     assert result['dropped'] == 0
     assert result['offTarget'] <= 2

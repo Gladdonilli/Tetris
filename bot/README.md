@@ -52,7 +52,7 @@ The bot plans for TETR.IO Tetra League (season 2); this game scores with its
 own tables, so the bot's attack plans are approximate here:
 
 - No surge, opener phase or garbage-clear bonus; a different combo table and
-  perfect-clear value; B2B adds 1 to spins only.
+  perfect-clear value.
 - Some J/L/S/Z placements the bot counts as mini spins are not spins here.
 - I pieces kick with plain SRS here, SRS+ for the bot. If the bot ever picks a
   cell set this game cannot reach, the closest reachable placement is played.

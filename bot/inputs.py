@@ -11,7 +11,9 @@ spin the bot counted on; the inputs are then sent through `Game.handle_event`
 and `MovementHandler`, as a player's keys would be.
 """
 
+import io
 from collections import deque
+from contextlib import redirect_stdout
 from math import sqrt
 from typing import Dict, Optional, Tuple
 
@@ -19,6 +21,12 @@ import pygame
 
 from piece import Piece
 
+class _Discard(io.TextIOBase):
+    def write(self, s):
+        return len(s)
+
+
+DISCARD = _Discard()
 HEIGHT = 40
 MOVES = ('left', 'right', 'cw', 'ccw', '180', 'sd')
 ROTATIONS = ('cw', 'ccw', '180')
@@ -110,9 +118,11 @@ def _lock(matrix, ptype, state):
     # Game.drop marks any fall as the last input, which rules a spin out.
     if rest != y or not spun:
         return placed, 0
-    _, spin = _piece(ptype, x, y, rotation).lock_piece([row[:] for row in matrix])
+    # lock_piece may print debugging lines; a search calls it per candidate.
+    with redirect_stdout(DISCARD):
+        _, spin = _piece(ptype, x, y, rotation).lock_piece([row[:] for row in matrix])
     if force and spin[:4] == 'Mini':
-        spin = spin[4:]
+        spin = spin[5:]
     return placed, spin_kind(spin)
 
 

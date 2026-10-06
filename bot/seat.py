@@ -56,7 +56,12 @@ class BotSeat:
         outcome = play_move(game, self.handler, move)
         outcome['ms'] = (move.get('data') or {}).get('ms')
         self.moves.append(outcome)
-        self.next_ms = max(self.next_ms, now) + self.slot_ms
+        # The next slot follows this slot, not the frame the move landed on,
+        # so frame lateness does not add up; a bot more than a slot behind
+        # starts over from now instead of catching up in a burst.
+        self.next_ms += self.slot_ms
+        if self.next_ms < now:
+            self.next_ms = now + self.slot_ms
 
     def close(self):
         self.worker.shutdown(wait=False, cancel_futures=True)

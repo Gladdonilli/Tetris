@@ -220,6 +220,40 @@ def test_new_games_start_without_the_countdown():
     assert not p1.resetting and not p2.resetting
 
 
+class InstantAdapter:
+    def play(self, position):
+        return {'type': 'move', 'data': None}
+
+    def close(self):
+        pass
+
+
+@pytest.mark.parametrize('pps', [2.5, 20])
+def test_seat_keeps_the_set_pace(monkeypatch, pps):
+    from bot import seat as seat_mod
+
+    def place(game, handler, move):
+        game.pieces += 1
+        return {'target': None, 'exact': False}
+
+    monkeypatch.setattr(seat_mod, 'play_move', place)
+    clock = [0.0]
+    game = game_with(empty(), 't')
+    game.start_time = 0
+    seat = seat_mod.BotSeat(game, InstantAdapter(), pps, lambda: clock[0])
+    try:
+        # Frames that never divide the slot: lateness that added up would
+        # show as missing pieces.
+        while clock[0] < 10_000:
+            seat.update()
+            if seat.pending is not None:
+                seat.pending[0].result()
+            clock[0] += 5.3
+    finally:
+        seat.close()
+    assert abs(game.pieces - 10 * pps) <= 1, game.pieces
+
+
 ADAPTER = os.environ.get('FUSION_ADAPTER')
 PACKAGE = os.environ.get('FUSION_PACKAGE')
 
